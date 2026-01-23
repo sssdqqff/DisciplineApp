@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 from .category import CategoryResponse
@@ -15,8 +15,12 @@ class TaskCreate(TaskBase):
 class TaskResponse(TaskBase):
     id: int = Field(..., description="The unique identifier of the task")
     created_at: datetime = Field(None, description="The timestamp when the task was created")
-    category: CategoryResponse = Field(..., description="The category this task belongs to")    
+    category: CategoryResponse = Field(..., description="The category this task belongs to")
 
-    class Config:
-        form_attributes = True
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
+
+class TaskListResponse(BaseModel):
+    tasks: list[TaskResponse] = Field(..., description="A list of tasks")
+    total: int = Field(..., description="Total number of tasks available")
+
+    model_config = ConfigDict(from_attributes=True)

@@ -1,7 +1,7 @@
 import re
 
-from sqlalchemy import Mapped, Column, Integer, String, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy.orm import relationship, Mapped
 
 from ..database import Base
 
@@ -22,3 +22,4 @@ class Task(Base):
 
     def __repr__(self) -> str:
         return f"Task(id={self.id}, name={self.name}, description={self.description}, is_active={self.is_active}, category_id={self.category_id})"
+    
