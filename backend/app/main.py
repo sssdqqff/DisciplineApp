@@ -24,9 +24,17 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory=settings.static_dir), name="static")
 
+app.include_router(tasks_router)
+app.include_router(categories_router)
+
+@app.on_event("startup")
+async def startup_event():
+    init_db()
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Task Management API!"}
 
-app.include_router(tasks_router)
-app.include_router(categories_router)
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
