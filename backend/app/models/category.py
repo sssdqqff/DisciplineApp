@@ -1,23 +1,26 @@
-import re
+from sqlalchemy import Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import relationship, Mapped, mapped_column
+from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, Boolean
-from sqlalchemy.orm import relationship, Mapped
-
-from .task import Task
 from ..database import Base
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .task import Task
+    from .user import User
 
 class Category(Base):
     __tablename__ = "categories"
 
-    id: Mapped[int] = Column(Integer, primary_key=True, index=True)
-    name: Mapped[str] = Column(String, unique=True, index=True, nullable=False)
-    description: Mapped[str] = Column(String, unique=True, index=True, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="category")
+    # связь с пользователем
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user: Mapped["User"] = relationship("User", back_populates="categories")
 
-    def __repr__(self) -> str:
-        return f"Category(id={self.id}, name={self.name}, description={self.description}, is_active={self.is_active})"
+    # связь с задачами
+    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="category", cascade="all, delete-orphan")

@@ -1,24 +1,58 @@
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 from typing import List, Optional
-from ..models.category import Category
+from ..models.category import Category, Task  # <-- добавляем Task
 from ..schemas.category import CategoryCreate
+from sqlalchemy.exc import SQLAlchemyError
 
 class CategoryRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self) -> List[Category]:
-        return self.db.query(Category).all()
+    # Основной метод: возвращает категории с активными задачами
+    def get_all(self, user_id: Optional[int] = None) -> List[Category]:
+        stmt = select(Category).options(
+            selectinload(Category.tasks.and_(Task.is_active == True))  # <-- только активные задачи
+        )
+        if user_id:
+            stmt = stmt.where(Category.user_id == user_id)
+        result = self.db.execute(stmt)
+        return result.scalars().all()
     
-    def get_by_id(self, category_id: int) -> Optional[Category]:
-        return self.db.query(Category).filter(Category.id == category_id).first()
+    # Базовый метод: возвращает категории без задач
+    def get_all_basic(self, user_id: Optional[int] = None) -> List[Category]:
+        stmt = select(Category)
+        if user_id:
+            stmt = stmt.where(Category.user_id == user_id)
+        result = self.db.execute(stmt)
+        return result.scalars().all()
+
+    # Возвращает категорию с активными задачами по ID
+    def get_by_id(self, category_id: int, user_id: Optional[int] = None) -> Optional[Category]:
+        stmt = select(Category).options(
+            selectinload(Category.tasks.and_(Task.is_active == True))
+        ).where(Category.id == category_id)
+        if user_id:
+            stmt = stmt.where(Category.user_id == user_id)
+        return self.db.execute(stmt).scalar_one_or_none()
+
+    # Возвращает категорию по имени (тоже с активными задачами)
+    def get_by_name(self, name: str, user_id: Optional[int] = None) -> Optional[Category]:
+        stmt = select(Category).options(
+            selectinload(Category.tasks.and_(Task.is_active == True))
+        ).where(Category.name == name)
+        if user_id:
+            stmt = stmt.where(Category.user_id == user_id)
+        return self.db.execute(stmt).scalar_one_or_none()
     
-    def get_by_name(self, name: str) -> Optional[Category]:
-        return self.db.query(Category).filter(Category.name == name).first()
-    
-    def create(self, category_create: CategoryCreate) -> Category:
-        new_category = Category(**category_create.model_dump())
-        self.db.add(new_category)
-        self.db.commit()
-        self.db.refresh(new_category)
+    # Создание категории
+    def create(self, category_create: CategoryCreate, user_id: int) -> Category:
+        new_category = Category(**category_create.model_dump(), user_id=user_id)
+        try:
+            self.db.add(new_category)
+            self.db.commit()
+            self.db.refresh(new_category)
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise
         return new_category
