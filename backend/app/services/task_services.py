@@ -31,14 +31,37 @@ class TaskService:
         tasks_response = [TaskResponse.model_validate(task) for task in tasks]
         return TaskListResponse(tasks=tasks_response, total=len(tasks_response)).tasks
 
-    def create_task(self, task_create: TaskCreate) -> TaskResponse:
+    def create_task(self, task_create: TaskCreate, user_id: int) -> TaskResponse:
+        if task_create.category_id is None:
+            default_category = self.category_repository.get_default()
+            task_create.category_id = default_category.id
+
         category = self.category_repository.get_by_id(task_create.category_id)
         if not category:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category does not exist")
 
-        existing_task = self.task_repository.get_by_name(task_create.name)
+        existing_task = self.task_repository.get_by_name(task_create.name, user_id=user_id)
         if existing_task:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Task with this name already exists")
         
-        new_task = self.task_repository.create(task_create)
+        new_task = self.task_repository.create(task_create, user_id=user_id)
         return TaskResponse.model_validate(new_task)
+    
+    def update_task(self, task_id: int, task_update: TaskCreate) -> TaskResponse:
+        task = self.task_repository.get_by_id(task_id)
+        if not task:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        
+        category = self.category_repository.get_by_id(task_update.category_id)
+        if not category:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category does not exist")
+
+        updated_task = self.task_repository.update(task_id, task_update)
+        return TaskResponse.model_validate(updated_task)
+    
+    def delete_task(self, task_id: int) -> None:
+        task = self.task_repository.get_by_id(task_id)
+        if not task:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        
+        self.task_repository.delete(task_id)

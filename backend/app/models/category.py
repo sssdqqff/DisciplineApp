@@ -1,6 +1,6 @@
 from sqlalchemy import Integer, String, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from datetime import datetime
+from datetime import UTC, datetime
 
 from ..database import Base
 
@@ -16,7 +16,7 @@ class Category(Base):
     name: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
 
     # связь с пользователем
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

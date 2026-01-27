@@ -7,10 +7,15 @@ class TaskBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=100, description="The name of the task")
     description: Optional[str] = Field(..., min_length=5, max_length=255, description="A brief description of the task")
     is_active: bool = Field(default=True, description="Indicates if the task is active")
-    category_id: int = Field(..., description="The ID of the category this task belongs to")
+    category_id: Optional[int] = Field(None, description="The ID of the category this task belongs to")
 
 class TaskCreate(TaskBase):
     pass
+
+class TaskUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100, description="The name of the task")
+    description: Optional[str] = Field(None, min_length=5, max_length=255, description="A brief description of the task")
+    is_active: Optional[bool] = Field(None, description="Indicates if the task is active")
 
 class TaskResponse(TaskBase):
     id: int = Field(..., description="The unique identifier of the task")

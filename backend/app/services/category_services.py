@@ -19,10 +19,26 @@ class CategoryService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         return CategoryResponse.model_validate(category)
 
-    def create_category(self, category_create: CategoryCreate) -> CategoryResponse:
-        existing_category = self.category_repository.get_by_name(category_create.name)
+    def create_category(self, category_create: CategoryCreate, user_id: int) -> CategoryResponse:
+        existing_category = self.category_repository.get_by_name(category_create.name, user_id=user_id)
         if existing_category:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category with this name already exists")
         
-        new_category = self.category_repository.create(category_create)
+        new_category = self.category_repository.create(category_create, user_id=user_id)
         return CategoryResponse.model_validate(new_category)
+    
+    def update_category(self, category_id: int, category_update: CategoryCreate) -> CategoryResponse:
+        category = self.category_repository.get_by_id(category_id)
+        if not category:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        
+        updated_category = self.category_repository.update(category_id, category_update)
+        return CategoryResponse.model_validate(updated_category)
+    
+    def delete_category(self, category_id: int) -> None:
+        category = self.category_repository.get_by_id(category_id)
+        if not category:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+        
+        self.category_repository.delete(category_id)
+        return None

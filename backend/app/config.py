@@ -13,7 +13,18 @@ class Settings(BaseSettings):
     static_dir: str = "static"
     images_dir: str = "static/images"
 
+    # Переменные для авторизации
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
     class Config:
         env_file = ".env"
 
+# создаём объект настроек
 settings = Settings()
+
+# для удобного импорта в security.py
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES

@@ -11,8 +11,10 @@ class UserBase(BaseModel):
     is_active: Optional[bool] = True
 
 # Схема для создания пользователя
-class UserCreate(UserBase):
-    password: str = Field(..., min_length=6, description="The user's password")
+class UserCreate(BaseModel):
+    nickname: str = Field(..., min_length=2, max_length=50, description="The user's nickname")
+    email: EmailStr = Field(..., description="The user's email address")
+    password: str = Field(..., min_length=6, max_length=72, description="The user's password")
 
 # Схема для ответа (без пароля)
 class UserResponse(UserBase):

@@ -1,8 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 from typing import List, Optional
-from ..models.category import Category, Task  # <-- добавляем Task
-from ..schemas.category import CategoryCreate
+from ..models.category import Category
+from ..models.task import Task
+from ..schemas.category import CategoryCreate, CategoryUpdate
 from sqlalchemy.exc import SQLAlchemyError
 
 class CategoryRepository:
@@ -56,3 +57,30 @@ class CategoryRepository:
             self.db.rollback()
             raise
         return new_category
+    
+    # Обновление категории
+    def update(self, category_id: int, category_update: CategoryUpdate) -> Category:
+        category = self.get_by_id(category_id)
+        if not category:
+            return None
+        for key, value in category_update.model_dump().items():
+            setattr(category, key, value)
+        try:
+            self.db.commit()
+            self.db.refresh(category)   
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise
+        return category
+    
+    # Логическое удаление категории
+    def delete(self, category_id: int) -> None:
+        category = self.get_by_id(category_id)
+        if not category:
+            return
+        category.is_active = False
+        try:
+            self.db.commit()
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise
