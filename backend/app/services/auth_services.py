@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 
 from app.schemas.auth import TokenResponse
@@ -10,11 +9,11 @@ from backend.app.repositories.user_repository import UserRepository
 
 
 class AuthService:
-    def __init__(self, db: Session):
+    def __init__(self, db):
         self.user_repository = UserRepository(db)
 
-    def login(self, nickname: str, password: str) -> TokenResponse:
-        user = self.user_repository.get_by_nickname(nickname)
+    async def login(self, nickname: str, password: str) -> TokenResponse:
+        user = await self.user_repository.get_by_nickname(nickname)
 
         if not user or not verify_password(password, user.hashed_password):
             raise HTTPException(

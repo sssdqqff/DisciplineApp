@@ -1,81 +1,78 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from ..models.category import Category
 from ..models.task import Task
 from ..schemas.category import CategoryCreate
 from sqlalchemy.exc import SQLAlchemyError
 
+
 class CategoryRepository:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    # Основной метод: возвращает категории с активными задачами
-    def get_all(self, user_id: Optional[int] = None) -> List[Category]:
+    async def get_all(self, user_id: Optional[int] = None) -> List[Category]:
         stmt = select(Category).options(
-            selectinload(Category.tasks.and_(Task.is_active == True))  # <-- только активные задачи
+            selectinload(Category.tasks.and_(Task.is_active == True))
         )
         if user_id is not None:
             stmt = stmt.where(Category.user_id == user_id)
-        result = self.db.execute(stmt)
+        result = await self.db.execute(stmt)
         return result.scalars().all()
-    
-    # Базовый метод: возвращает категории без задач
-    def get_all_basic(self, user_id: Optional[int] = None) -> List[Category]:
+
+    async def get_all_basic(self, user_id: Optional[int] = None) -> List[Category]:
         stmt = select(Category)
         if user_id is not None:
             stmt = stmt.where(Category.user_id == user_id)
-        result = self.db.execute(stmt)
+        result = await self.db.execute(stmt)
         return result.scalars().all()
 
-    # Возвращает категорию с активными задачами по ID
-    def get_by_id(self, category_id: int, user_id: Optional[int] = None) -> Optional[Category]:
+    async def get_by_id(self, category_id: int, user_id: Optional[int] = None) -> Optional[Category]:
         stmt = select(Category).options(
             selectinload(Category.tasks.and_(Task.is_active == True))
         ).where(Category.id == category_id)
         if user_id is not None:
             stmt = stmt.where(Category.user_id == user_id)
-        return self.db.execute(stmt).scalar_one_or_none()
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
 
-    # Возвращает категорию по имени (тоже с активными задачами)
-    def get_by_name(self, name: str, user_id: Optional[int] = None) -> Optional[Category]:
+    async def get_by_name(self, name: str, user_id: Optional[int] = None) -> Optional[Category]:
         stmt = select(Category).options(
             selectinload(Category.tasks.and_(Task.is_active == True))
         ).where(Category.name == name)
         if user_id is not None:
             stmt = stmt.where(Category.user_id == user_id)
-        return self.db.execute(stmt).scalar_one_or_none()
-    
-    # Создание категории
-    def create(self, category_create: CategoryCreate, user_id: int) -> Category:
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def create(self, category_create: CategoryCreate, user_id: int) -> Category:
         new_category = Category(**category_create.model_dump(), user_id=user_id)
         try:
             self.db.add(new_category)
-            self.db.commit()
-            self.db.refresh(new_category)
+            await self.db.commit()
+            await self.db.refresh(new_category)
         except SQLAlchemyError:
-            self.db.rollback()
+            await self.db.rollback()
             raise
         return new_category
-    
-    # Обновление категории
-    def update(self, category: Category) -> Category:
+
+    async def update(self, category: Category) -> Category:
         try:
-            self.db.commit()
-            self.db.refresh(category)
+            await self.db.commit()
+            await self.db.refresh(category)
         except SQLAlchemyError:
-            self.db.rollback()
+            await self.db.rollback()
             raise
         return category
-    
-    # Логическое удаление категории
-    def delete(self, category_id: int) -> None:
-        category = self.get_by_id(category_id)
+
+    async def delete(self, category_id: int) -> None:
+        category = await self.get_by_id(category_id)
         if not category:
             return
         category.is_active = False
         try:
-            self.db.commit()
+            await self.db.commit()
         except SQLAlchemyError:
-            self.db.rollback()
+            await self.db.rollback()
             raise

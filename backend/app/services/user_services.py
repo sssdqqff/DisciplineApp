@@ -1,4 +1,3 @@
-from sqlalchemy.orm import Session
 from typing import List
 from ..repositories.user_repository import UserRepository
 from ..schemas.user import UserCreate, UserResponse
@@ -8,49 +7,46 @@ from app.utils.security import hash_password
 
 
 class UserService:
-    def __init__(self, db: Session):
+    def __init__(self, db):
         self.user_repository = UserRepository(db)
         self.db = db
 
-    def create_user(self, user_create: UserCreate) -> UserResponse:
-        # Проверка на уникальность
-        if self.user_repository.get_by_email(user_create.email):
+    async def create_user(self, user_create: UserCreate) -> UserResponse:
+        if await self.user_repository.get_by_email(user_create.email):
             raise HTTPException(status_code=400, detail="Email already registered")
-        if self.user_repository.get_by_nickname(user_create.nickname):
+        if await self.user_repository.get_by_nickname(user_create.nickname):
             raise HTTPException(status_code=400, detail="Nickname already taken")
 
-        # Создание нового пользователя
         new_user = User(
             email=user_create.email,
             nickname=user_create.nickname,
             hashed_password=hash_password(user_create.password[:72])
         )
-        created_user = self.user_repository.create(new_user)
+        created_user = await self.user_repository.create(new_user)
         return UserResponse.model_validate(created_user)
 
-    def get_all_users(self) -> List[UserResponse]:
-        users = self.user_repository.get_all()
+    async def get_all_users(self) -> List[UserResponse]:
+        users = await self.user_repository.get_all()
         return [UserResponse.model_validate(user) for user in users]
 
-    def get_user_by_id(self, user_id: int) -> UserResponse:
-        user = self.user_repository.get_by_id(user_id)
+    async def get_user_by_id(self, user_id: int) -> UserResponse:
+        user = await self.user_repository.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         return UserResponse.model_validate(user)
 
-    def get_user_by_nickname(self, nickname: str) -> UserResponse:
-        user = self.user_repository.get_by_nickname(nickname)
+    async def get_user_by_nickname(self, nickname: str) -> UserResponse:
+        user = await self.user_repository.get_by_nickname(nickname)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         return UserResponse.model_validate(user)
 
-    def update_user(self, user_id: int, user_update: UserCreate) -> UserResponse:
-        user = self.user_repository.get_by_id(user_id)
+    async def update_user(self, user_id: int, user_update: UserCreate) -> UserResponse:
+        user = await self.user_repository.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         ALLOWED_FIELDS = {"nickname", "email", "password"}
-
         data = user_update.model_dump(exclude_unset=True)
 
         for key, value in data.items():
@@ -62,13 +58,12 @@ class UserService:
             else:
                 setattr(user, key, value)
 
-        updated_user = self.user_repository.update(user)
+        updated_user = await self.user_repository.update(user)
         return UserResponse.model_validate(updated_user)
 
-    def delete_user(self, user_id: int) -> None:
-        user = self.user_repository.get_by_id(user_id)
+    async def delete_user(self, user_id: int) -> None:
+        user = await self.user_repository.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
-        # Передаём объект пользователя в репозиторий
-        self.user_repository.delete(user)
+        await self.user_repository.delete(user)
