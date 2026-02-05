@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     app_name: str = "My Awesome App"
     debug_mode: bool = False
-    database_url: str = "sqlite:///./discipline.db"
+    database_url: str = "postgresql+asyncpg://postgres:subbotin@localhost:5432/postgres"
     cors_origins: list = [
         "http://localhost:5173",
         "http://localhost:3000",

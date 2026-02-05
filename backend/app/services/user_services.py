@@ -49,10 +49,18 @@ class UserService:
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        # Обновляем поля ORM-объекта
-        user.nickname = user_update.nickname
-        user.email = user_update.email
-        user.hashed_password = hash_password(user_update.password[:72])
+        ALLOWED_FIELDS = {"nickname", "email", "password"}
+
+        data = user_update.model_dump(exclude_unset=True)
+
+        for key, value in data.items():
+            if key not in ALLOWED_FIELDS:
+                continue
+            if key == "password":
+                value = hash_password(value[:72])
+                setattr(user, "hashed_password", value)
+            else:
+                setattr(user, key, value)
 
         updated_user = self.user_repository.update(user)
         return UserResponse.model_validate(updated_user)

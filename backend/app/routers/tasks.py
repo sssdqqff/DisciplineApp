@@ -1,23 +1,16 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+
 from ..database import get_db
 from ..schemas.task import TaskCreate, TaskResponse
 from ..services.task_services import TaskService
-from ..services.auth_services import AuthService
-from fastapi.security import OAuth2PasswordBearer
+from backend.app.dependencies.auth import get_current_user  # используем dependency
 
 router = APIRouter(
     prefix="/tasks",
     tags=["tasks"]
 )
-
-# OAuth2 для получения текущего пользователя
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    auth_service = AuthService(db)
-    return auth_service.get_current_user(token)
 
 @router.get("", response_model=List[TaskResponse], status_code=status.HTTP_200_OK)
 def get_all_tasks(current_user=Depends(get_current_user), db: Session = Depends(get_db)):

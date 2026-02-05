@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..models.user import User
 from sqlalchemy.exc import SQLAlchemyError
+from ..schemas.user import UserUpdate
 
 class UserRepository:
     def __init__(self, db: Session):
@@ -51,7 +52,10 @@ class UserRepository:
         return user
     
     # Удалить юзера
-    def delete(self, user: User) -> None:
+    def delete(self, user_id: int) -> None:
+        user = self.get_by_id(user_id)
+        if not user:
+            return
         try:
             self.db.delete(user)
             self.db.commit()

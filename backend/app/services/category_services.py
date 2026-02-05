@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..repositories.category_repository import CategoryRepository
-from ..schemas.category import CategoryCreate, CategoryResponse
+from ..schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
 from fastapi import HTTPException, status
 
 class CategoryService:
@@ -27,12 +27,20 @@ class CategoryService:
         new_category = self.category_repository.create(category_create, user_id=user_id)
         return CategoryResponse.model_validate(new_category)
     
-    def update_category(self, category_id: int, category_update: CategoryCreate) -> CategoryResponse:
-        category = self.category_repository.get_by_id(category_id)
+    def update_category(self, category_id: int, category_update: CategoryUpdate, user_id: int) -> CategoryResponse:
+        category = self.category_repository.get_by_id(category_id, user_id=user_id)
         if not category:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         
-        updated_category = self.category_repository.update(category_id, category_update)
+        data = category_update.model_dump(exclude_unset=True)
+        
+        ALLOWED_FIELDS = {"name", "description"}
+
+        for key, value in data.items():
+            if key in ALLOWED_FIELDS:
+                setattr(category, key, value)
+        
+        updated_category = self.category_repository.update(category)
         return CategoryResponse.model_validate(updated_category)
     
     def delete_category(self, category_id: int) -> None:

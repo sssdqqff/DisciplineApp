@@ -52,18 +52,14 @@ class TaskRepository:
         return result.scalars().all()
     
     # Обновить задачу (проверка по user_id)
-    def update(self, task_id: int, task_update: TaskUpdate, user_id: Optional[int] = None) -> Optional[Task]:
-        task = self.get_by_id(task_id, user_id=user_id)
-        if not task:
-            return None
-        for key, value in task_update.model_dump().items():
-            setattr(task, key, value)
+    def update(self, task: Task) -> Task:
         try:
             self.db.commit()
             self.db.refresh(task)
         except SQLAlchemyError:
             self.db.rollback()
             raise
+
         return task
     
     # Логическое удаление задачи (с учётом user_id)

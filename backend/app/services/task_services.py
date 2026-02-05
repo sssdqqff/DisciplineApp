@@ -33,8 +33,7 @@ class TaskService:
 
     def create_task(self, task_create: TaskCreate, user_id: int) -> TaskResponse:
         if task_create.category_id is None:
-            default_category = self.category_repository.get_default()
-            task_create.category_id = default_category.id
+            raise HTTPException(status_code=400, detail="Category must be specified")
 
         category = self.category_repository.get_by_id(task_create.category_id)
         if not category:
@@ -55,8 +54,18 @@ class TaskService:
         category = self.category_repository.get_by_id(task_update.category_id)
         if not category:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Category does not exist")
-
-        updated_task = self.task_repository.update(task_id, task_update)
+        
+        data = task_update.model_dump(exclude_unset=True)
+        if not data:
+            return TaskResponse.model_validate(task)
+        
+        ALLOWED_FIELDS = {"name", "description", "category_id"}  # добавил category_id
+        
+        for key, value in data.items():
+            if key in ALLOWED_FIELDS:
+                setattr(task, key, value)
+        
+        updated_task = self.task_repository.update(task)
         return TaskResponse.model_validate(updated_task)
     
     def delete_task(self, task_id: int) -> None:
